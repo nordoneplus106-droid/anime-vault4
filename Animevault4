@@ -1,0 +1,1802 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>AniVault — Anime Tracking & Discovery</title>
+<script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+tailwind.config = {
+  theme: {
+    extend: {
+      colors: {
+        'bg-primary':'#08080f','bg-secondary':'#0d0d1a','bg-card':'#111120',
+        'neon-purple':'#7c3aed','neon-pink':'#ec4899','neon-blue':'#3b82f6','neon-cyan':'#06b6d4',
+        'anime-gold':'#fbbf24'
+      },
+      keyframes:{
+        float:{
+          '0%,100%':{transform:'translateY(0px) rotate(0deg)'},
+          '50%':{transform:'translateY(-18px) rotate(2deg)'}
+        },
+        glow:{
+          'from':{boxShadow:'0 0 10px rgba(124,58,237,0.4)'},
+          'to':{boxShadow:'0 0 30px rgba(236,72,153,0.7)'}
+        },
+        slideUp:{
+          'from':{transform:'translateY(30px)',opacity:'0'},
+          'to':{transform:'translateY(0)',opacity:'1'}
+        },
+        fadeIn:{'from':{opacity:'0'},'to':{opacity:'1'}},
+        shimmer:{
+          '0%':{backgroundPosition:'-400% 0'},
+          '100%':{backgroundPosition:'400% 0'}
+        },
+        pulse2:{'0%,100%':{opacity:'1'},'50%':{opacity:'0.5'}}
+      },
+      animation:{
+        float:'float 6s ease-in-out infinite',
+        glow:'glow 2s ease-in-out infinite alternate',
+        slideUp:'slideUp 0.4s ease-out',
+        fadeIn:'fadeIn 0.5s ease-out',
+        shimmer:'shimmer 2s linear infinite'
+      }
+    }
+  }
+}
+</script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#08080f;color:#f0f0ff;font-family:'Segoe UI',system-ui,sans-serif;overflow-x:hidden}
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:#08080f}
+::-webkit-scrollbar-thumb{background:linear-gradient(#7c3aed,#ec4899);border-radius:4px}
+::-webkit-scrollbar-thumb:hover{background:linear-gradient(#9f5ff0,#f472b6)}
+.gradient-text{background:linear-gradient(135deg,#7c3aed,#ec4899,#3b82f6);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.gradient-text-2{background:linear-gradient(135deg,#06b6d4,#7c3aed);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.glass{background:rgba(17,17,32,0.7);backdrop-filter:blur(20px);border:1px solid rgba(124,58,237,0.15)}
+.glass-light{background:rgba(17,17,32,0.4);backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,0.05)}
+.neon-border{box-shadow:0 0 0 1px rgba(124,58,237,0.4),0 0 20px rgba(124,58,237,0.15)}
+.neon-glow{box-shadow:0 0 25px rgba(124,58,237,0.5)}
+.neon-pink-glow{box-shadow:0 0 25px rgba(236,72,153,0.5)}
+.card-hover{transition:all 0.35s cubic-bezier(0.25,0.8,0.25,1)}
+.card-hover:hover{transform:translateY(-6px);box-shadow:0 0 30px rgba(124,58,237,0.45),0 20px 50px rgba(0,0,0,0.7)}
+.shimmer-bg{background:linear-gradient(90deg,#111120 25%,#1a1a30 50%,#111120 75%);background-size:400% 100%;animation:shimmer 2s linear infinite}
+.nav-blur{background:rgba(8,8,15,0.85);backdrop-filter:blur(25px);border-bottom:1px solid rgba(124,58,237,0.12)}
+.hero-bg{background:radial-gradient(ellipse at 20% 50%,rgba(124,58,237,0.18) 0%,transparent 60%),radial-gradient(ellipse at 80% 20%,rgba(236,72,153,0.12) 0%,transparent 60%),radial-gradient(ellipse at 50% 90%,rgba(59,130,246,0.1) 0%,transparent 60%),#08080f}
+.orb{position:fixed;border-radius:50%;filter:blur(100px);pointer-events:none;z-index:0}
+.btn-primary{background:linear-gradient(135deg,#7c3aed,#ec4899);color:#fff;border:none;cursor:pointer;transition:all 0.3s;font-weight:600}
+.btn-primary:hover{filter:brightness(1.15);transform:translateY(-1px);box-shadow:0 8px 25px rgba(124,58,237,0.4)}
+.btn-secondary{background:rgba(124,58,237,0.1);color:#a78bfa;border:1px solid rgba(124,58,237,0.3);cursor:pointer;transition:all 0.3s}
+.btn-secondary:hover{background:rgba(124,58,237,0.2);border-color:rgba(124,58,237,0.6);color:#c4b5fd}
+.input-dark{background:rgba(17,17,32,0.9);border:1px solid rgba(124,58,237,0.2);color:#f0f0ff;transition:all 0.3s}
+.input-dark:focus{outline:none;border-color:rgba(124,58,237,0.7);box-shadow:0 0 0 3px rgba(124,58,237,0.12)}
+.input-dark::placeholder{color:#4a4a6a}
+.badge{display:inline-block;padding:2px 8px;border-radius:9999px;font-size:0.7rem;font-weight:600}
+.badge-watching{background:rgba(16,185,129,0.2);color:#10b981;border:1px solid rgba(16,185,129,0.3)}
+.badge-completed{background:rgba(59,130,246,0.2);color:#3b82f6;border:1px solid rgba(59,130,246,0.3)}
+.badge-plan{background:rgba(245,158,11,0.2);color:#f59e0b;border:1px solid rgba(245,158,11,0.3)}
+.badge-dropped{background:rgba(239,68,68,0.2);color:#ef4444;border:1px solid rgba(239,68,68,0.3)}
+.tab-active{border-bottom:2px solid #7c3aed;color:#a78bfa;background:rgba(124,58,237,0.08)}
+.scroll-row{overflow-x:auto;scrollbar-width:thin;scrollbar-color:#7c3aed #08080f;padding-bottom:8px}
+.scroll-row-inner{display:flex;gap:14px;width:max-content;padding:4px 2px}
+.star-filled{color:#fbbf24}
+.star-empty{color:#2a2a40}
+.genre-card{transition:all 0.3s;cursor:pointer}
+.genre-card:hover{transform:scale(1.04);filter:brightness(1.1)}
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.85);backdrop-filter:blur(8px);z-index:200;display:flex;align-items:center;justify-content:center}
+.progress-bar{background:rgba(255,255,255,0.08);border-radius:9999px;overflow:hidden;height:6px}
+.progress-fill{height:100%;border-radius:9999px;background:linear-gradient(90deg,#7c3aed,#ec4899);transition:width 0.5s ease}
+.section-title{font-size:1.25rem;font-weight:700;display:flex;align-items:center;gap:8px;margin-bottom:1rem}
+.dropdown{position:absolute;z-index:100;background:#111120;border:1px solid rgba(124,58,237,0.3);border-radius:12px;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,0.7);min-width:180px}
+.dropdown-item{padding:10px 16px;cursor:pointer;font-size:0.9rem;transition:background 0.2s;display:flex;align-items:center;gap:8px}
+.dropdown-item:hover{background:rgba(124,58,237,0.15);color:#c4b5fd}
+.tooltip{position:absolute;background:#1a1a2e;color:#f0f0ff;padding:6px 10px;border-radius:8px;font-size:0.75rem;white-space:nowrap;pointer-events:none;z-index:999;border:1px solid rgba(124,58,237,0.3)}
+@media(max-width:640px){.section-title{font-size:1rem}}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+
+/* ============================================================
+   CONSTANTS & UTILITIES
+============================================================ */
+const JIKAN = 'https://api.jikan.moe/v4';
+let _lastCall = 0;
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+async function jikan(path) {
+  const now = Date.now();
+  const delta = now - _lastCall;
+  if (delta < 400) await sleep(400 - delta);
+  _lastCall = Date.now();
+  try {
+    const r = await fetch(JIKAN + path);
+    if (!r.ok) throw new Error(r.status);
+    return r.json();
+  } catch(e) { console.warn('Jikan:', e); return null; }
+}
+
+const apiCache = {};
+async function cachedJikan(path) {
+  if (apiCache[path]) return apiCache[path];
+  const data = await jikan(path);
+  if (data) apiCache[path] = data;
+  return data;
+}
+
+const GENRES = [
+  {id:1,name:'Action',icon:'⚔️',color:'from-red-600 to-orange-500'},
+  {id:2,name:'Adventure',icon:'🗺️',color:'from-amber-500 to-yellow-400'},
+  {id:4,name:'Comedy',icon:'😂',color:'from-yellow-400 to-lime-400'},
+  {id:22,name:'Romance',icon:'💕',color:'from-pink-500 to-rose-400'},
+  {id:10,name:'Fantasy',icon:'🧙',color:'from-purple-600 to-violet-400'},
+  {id:14,name:'Horror',icon:'👻',color:'from-gray-800 to-gray-600'},
+  {id:24,name:'Sci-Fi',icon:'🚀',color:'from-blue-600 to-cyan-400'},
+  {id:36,name:'Slice of Life',icon:'☕',color:'from-green-500 to-teal-400'},
+  {id:30,name:'Sports',icon:'⚽',color:'from-emerald-500 to-green-400'},
+  {id:7,name:'Mystery',icon:'🔍',color:'from-indigo-600 to-blue-500'},
+  {id:40,name:'Psychological',icon:'🧠',color:'from-fuchsia-600 to-purple-500'},
+  {id:8,name:'Drama',icon:'🎭',color:'from-rose-600 to-pink-500'},
+  {id:13,name:'Historical',icon:'🏯',color:'from-stone-600 to-amber-700'},
+  {id:19,name:'Music',icon:'🎵',color:'from-cyan-500 to-blue-400'},
+  {id:27,name:'Shounen',icon:'⚡',color:'from-orange-500 to-red-400'},
+  {id:42,name:'Seinen',icon:'🌑',color:'from-slate-700 to-gray-600'},
+];
+
+const STATUS_CONFIG = {
+  watching:  {label:'Watching',  color:'badge-watching', icon:'▶️'},
+  completed: {label:'Completed', color:'badge-completed', icon:'✅'},
+  planToWatch:{label:'Plan to Watch',color:'badge-plan',  icon:'📋'},
+  dropped:   {label:'Dropped',   color:'badge-dropped',  icon:'❌'},
+};
+
+function fmt(n){return n>=1000?(n/1000).toFixed(1)+'k':String(n||0)}
+function hrs(eps){return Math.round((eps||0)*24/60)}
+function readLS(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d}catch{return d}}
+function writeLS(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch{}}
+function hashPage(){return window.location.hash.slice(1)||'home'}
+function navigate(page){window.location.hash=page;window.scrollTo({top:0,behavior:'smooth'})}
+
+/* ============================================================
+   CONTEXT
+============================================================ */
+const Ctx = React.createContext(null);
+
+function AppProvider({children}){
+  const [user,setUser] = React.useState(() => readLS('anivault_user', {
+    isLoggedIn:false, username:'', email:'', avatar:'', joinDate:'',
+    watchlist:{watching:[],completed:[],planToWatch:[],dropped:[]},
+    ratings:{}, favoriteAnime:[]
+  }));
+  const [toast, setToast] = React.useState(null);
+
+  const saveUser = u => { setUser(u); writeLS('anivault_user', u); };
+
+  const showToast = (message, type='success') => {
+    setToast({message, type});
+    setTimeout(()=>setToast(null), 3200);
+  };
+
+  const getAnimeStatus = id => {
+    const u = user;
+    if (!u.watchlist) return null;
+    for (const s of Object.keys(u.watchlist)){
+      if (u.watchlist[s].find(a=>a.mal_id===id)) return s;
+    }
+    return null;
+  };
+
+  const addToList = (anime, status) => {
+    const id = anime.mal_id;
+    const u = JSON.parse(JSON.stringify(user));
+    // Remove from all lists first
+    for (const s of Object.keys(u.watchlist)){
+      u.watchlist[s] = u.watchlist[s].filter(a=>a.mal_id!==id);
+    }
+    const entry = {
+      mal_id: id,
+      title: anime.title,
+      title_english: anime.title_english||anime.title,
+      poster: anime.images?.jpg?.large_image_url || anime.images?.jpg?.image_url || '',
+      episodes: anime.episodes||0,
+      score: anime.score||0,
+      genres: anime.genres||[],
+      year: anime.year||anime.aired?.prop?.from?.year||'?',
+      type: anime.type||'TV',
+      addedAt: new Date().toISOString(),
+      myEpisodes: 0,
+    };
+    u.watchlist[status].push(entry);
+    saveUser(u);
+    showToast(`Added "${anime.title}" to ${STATUS_CONFIG[status].label}`, 'success');
+  };
+
+  const removeFromList = (id) => {
+    const u = JSON.parse(JSON.stringify(user));
+    for (const s of Object.keys(u.watchlist)){
+      u.watchlist[s] = u.watchlist[s].filter(a=>a.mal_id!==id);
+    }
+    saveUser(u);
+    showToast('Removed from list', 'info');
+  };
+
+  const rateAnime = (id, rating) => {
+    const u = JSON.parse(JSON.stringify(user));
+    u.ratings[id] = rating;
+    saveUser(u);
+  };
+
+  const login = ({username, email}) => {
+    const u = JSON.parse(JSON.stringify(user));
+    u.isLoggedIn = true;
+    u.username = username;
+    u.email = email;
+    u.avatar = username[0]?.toUpperCase()||'A';
+    u.joinDate = new Date().toISOString();
+    saveUser(u);
+    showToast(`Welcome back, ${username}! 🎌`, 'success');
+  };
+
+  const logout = () => {
+    const u = JSON.parse(JSON.stringify(user));
+    u.isLoggedIn = false;
+    saveUser(u);
+    navigate('home');
+    showToast('Logged out successfully', 'info');
+  };
+
+  const getAllWatched = () => {
+    const all = [];
+    for (const s of Object.keys(user.watchlist||{})){
+      (user.watchlist[s]||[]).forEach(a=>all.push({...a, status:s}));
+    }
+    return all;
+  };
+
+  const getTotalEpisodes = () => getAllWatched().reduce((s,a)=>s+(a.myEpisodes||a.episodes||0),0);
+  const getAvgRating = () => {
+    const r = Object.values(user.ratings||{});
+    return r.length ? (r.reduce((a,b)=>a+b,0)/r.length).toFixed(1) : '—';
+  };
+
+  return (
+    <Ctx.Provider value={{
+      user, saveUser, showToast, getAnimeStatus, addToList, removeFromList,
+      rateAnime, login, logout, getAllWatched, getTotalEpisodes, getAvgRating
+    }}>
+      {children}
+      {toast && <Toast toast={toast}/>}
+    </Ctx.Provider>
+  );
+}
+
+/* ============================================================
+   SMALL SHARED COMPONENTS
+============================================================ */
+function Toast({toast}){
+  const icons={success:'✅',info:'ℹ️',error:'❌',warn:'⚠️'};
+  const colors={success:'border-emerald-500/50 bg-emerald-900/80',info:'border-blue-500/50 bg-blue-900/80',error:'border-red-500/50 bg-red-900/80',warn:'border-amber-500/50 bg-amber-900/80'};
+  return (
+    <div className={`fixed bottom-6 right-6 z-[999] animate-slideUp px-5 py-3 rounded-xl border backdrop-blur-xl flex items-center gap-3 shadow-2xl text-white text-sm font-medium max-w-xs ${colors[toast.type]||colors.info}`}>
+      <span className="text-lg">{icons[toast.type]||icons.info}</span>
+      <span>{toast.message}</span>
+    </div>
+  );
+}
+
+function SkeletonCard(){
+  return (
+    <div className="rounded-xl overflow-hidden bg-bg-card border border-white/5 w-44 flex-shrink-0">
+      <div className="aspect-[2/3] shimmer-bg"/>
+      <div className="p-3 space-y-2">
+        <div className="h-4 shimmer-bg rounded w-3/4"/>
+        <div className="h-3 shimmer-bg rounded w-1/2"/>
+      </div>
+    </div>
+  );
+}
+
+function SkeletonGrid({n=12}){
+  return (
+    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+      {Array(n).fill(0).map((_,i)=>(
+        <div key={i} className="rounded-xl overflow-hidden bg-bg-card border border-white/5">
+          <div className="aspect-[2/3] shimmer-bg"/>
+          <div className="p-3 space-y-2">
+            <div className="h-4 shimmer-bg rounded w-3/4"/>
+            <div className="h-3 shimmer-bg rounded w-1/2"/>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function Spinner(){
+  return (
+    <div className="flex justify-center items-center py-16">
+      <div className="w-12 h-12 rounded-full border-4 border-neon-purple/20 border-t-neon-purple animate-spin"/>
+    </div>
+  );
+}
+
+function Stars({rating, max=10, size='sm'}){
+  const sz = size==='sm' ? 'text-sm' : 'text-lg';
+  return (
+    <div className={`flex gap-0.5 ${sz}`}>
+      {Array(max).fill(0).map((_,i)=>(
+        <span key={i} className={i<Math.round(rating/2)?'star-filled':'star-empty'}>★</span>
+      ))}
+    </div>
+  );
+}
+
+function StarRater({value, onChange}){
+  const [hover,setHover] = React.useState(0);
+  return (
+    <div className="flex gap-1 text-xl cursor-pointer">
+      {Array(10).fill(0).map((_,i)=>(
+        <span key={i}
+          className={(i<(hover||value)?'text-anime-gold':'text-white/20')+' hover:scale-125 transition-transform'}
+          onMouseEnter={()=>setHover(i+1)}
+          onMouseLeave={()=>setHover(0)}
+          onClick={()=>onChange(i+1)}
+        >★</span>
+      ))}
+    </div>
+  );
+}
+
+function ScoreBadge({score}){
+  const s = parseFloat(score);
+  const color = s>=8.5?'from-amber-400 to-yellow-300':s>=7?'from-emerald-400 to-green-300':s>=5?'from-blue-400 to-cyan-300':'from-gray-500 to-gray-400';
+  return (
+    <div className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-gradient-to-r ${color} text-black font-bold text-xs`}>
+      ⭐ {s?s.toFixed(1):'N/A'}
+    </div>
+  );
+}
+
+/* ============================================================
+   ANIME CARD
+============================================================ */
+function AnimeCard({anime, compact=false, onClick}){
+  const {getAnimeStatus, addToList, user} = React.useContext(Ctx);
+  const [showDrop, setShowDrop] = React.useState(false);
+  const [imgLoaded, setImgLoaded] = React.useState(false);
+  const status = getAnimeStatus(anime.mal_id);
+  const poster = anime.images?.jpg?.large_image_url || anime.images?.jpg?.image_url || '';
+  const title = anime.title_english || anime.title;
+
+  const handleAdd = (e, s) => {
+    e.stopPropagation();
+    addToList(anime, s);
+    setShowDrop(false);
+  };
+
+  return (
+    <div
+      className={`relative group card-hover cursor-pointer rounded-xl overflow-hidden bg-bg-card border border-white/5 hover:border-neon-purple/40 flex-shrink-0 ${compact?'w-36':'w-44'}`}
+      onClick={()=>{if(onClick)onClick(anime);else navigate(`anime/${anime.mal_id}`)}}
+    >
+      <div className={`relative overflow-hidden ${compact?'aspect-[2/3]':'aspect-[2/3]'}`}>
+        {!imgLoaded && <div className="absolute inset-0 shimmer-bg"/>}
+        <img
+          src={poster} alt={title}
+          loading="lazy"
+          onLoad={()=>setImgLoaded(true)}
+          className={`w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ${imgLoaded?'opacity-100':'opacity-0'}`}
+        />
+        {status && (
+          <div className="absolute top-2 left-2">
+            <span className={`badge ${STATUS_CONFIG[status]?.color}`}>{STATUS_CONFIG[status]?.icon}</span>
+          </div>
+        )}
+        {anime.score && (
+          <div className="absolute top-2 right-2">
+            <ScoreBadge score={anime.score}/>
+          </div>
+        )}
+        {/* Hover overlay */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-3 gap-2">
+          <div className="text-gray-300 text-xs line-clamp-2">{anime.genres?.slice(0,2).map(g=>g.name).join(' · ')}</div>
+          <div className="relative">
+            <button
+              className="btn-primary w-full py-1.5 rounded-lg text-xs font-semibold"
+              onClick={e=>{e.stopPropagation();setShowDrop(d=>!d)}}
+            >+ Add to List ▾</button>
+            {showDrop && (
+              <div className="dropdown absolute bottom-full left-0 right-0 mb-1">
+                {Object.keys(STATUS_CONFIG).map(s=>(
+                  <div key={s} className={`dropdown-item ${status===s?'text-neon-purple':''}`}
+                    onClick={e=>handleAdd(e,s)}>
+                    <span>{STATUS_CONFIG[s].icon}</span>
+                    <span>{STATUS_CONFIG[s].label}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+      <div className="p-2.5">
+        <div className="text-white text-xs font-semibold leading-tight line-clamp-2 mb-1">{title}</div>
+        <div className="text-gray-500 text-xs flex items-center gap-1.5">
+          <span>{anime.year||anime.aired?.prop?.from?.year||'?'}</span>
+          {!compact && <><span>·</span><span>{anime.type||'TV'}</span></>}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ============================================================
+   ANIME ROW SECTION
+============================================================ */
+function AnimeRow({title, icon, apiPath, extraLink}){
+  const [items, setItems] = React.useState([]);
+  const [loading, setLoading] = React.useState(true);
+
+  React.useEffect(()=>{
+    let active = true;
+    setLoading(true);
+    cachedJikan(apiPath).then(d=>{
+      if (active && d?.data) setItems(d.data.slice(0,14));
+      setLoading(false);
+    });
+    return ()=>{active=false};
+  },[apiPath]);
+
+  return (
+    <section className="mb-10">
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="section-title gradient-text">
+          <span>{icon}</span>{title}
+        </h2>
+        {extraLink && (
+          <button onClick={()=>navigate(extraLink)}
+            className="text-neon-purple text-sm hover:text-neon-pink transition-colors">
+            View all →
+          </button>
+        )}
+      </div>
+      <div className="scroll-row">
+        <div className="scroll-row-inner">
+          {loading
+            ? Array(8).fill(0).map((_,i)=><SkeletonCard key={i}/>)
+            : items.map(a=><AnimeCard key={a.mal_id} anime={a}/>)
+          }
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ============================================================
+   NAVBAR
+============================================================ */
+function Navbar({page}){
+  const {user, logout} = React.useContext(Ctx);
+  const [searchOpen, setSearchOpen] = React.useState(false);
+  const [searchQ, setSearchQ] = React.useState('');
+  const [menuOpen, setMenuOpen] = React.useState(false);
+  const inputRef = React.useRef(null);
+
+  const doSearch = e => {
+    e.preventDefault();
+    if (searchQ.trim()) { navigate(`search/${encodeURIComponent(searchQ.trim())}`); setSearchOpen(false); setSearchQ(''); }
+  };
+
+  React.useEffect(()=>{ if(searchOpen && inputRef.current) inputRef.current.focus(); },[searchOpen]);
+
+  const navLinks = [
+    {id:'home',label:'Home',icon:'🏠'},
+    {id:'browse',label:'Browse',icon:'🎭'},
+    {id:'search',label:'Search',icon:'🔍'},
+    {id:'dashboard',label:'Dashboard',icon:'📊'},
+  ];
+
+  return (
+    <nav className="nav-blur fixed top-0 left-0 right-0 z-50 h-16 flex items-center px-4 md:px-8 gap-4">
+      {/* Logo */}
+      <button onClick={()=>navigate('home')} className="flex items-center gap-2 font-black text-xl flex-shrink-0">
+        <span className="text-2xl">🎌</span>
+        <span className="gradient-text">AniVault</span>
+      </button>
+
+      {/* Desktop Nav */}
+      <div className="hidden md:flex items-center gap-1 ml-4">
+        {navLinks.map(l=>(
+          <button key={l.id} onClick={()=>navigate(l.id)}
+            className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-all ${
+              page===l.id||page.startsWith(l.id+'/') ? 'bg-neon-purple/20 text-neon-purple' : 'text-gray-400 hover:text-white hover:bg-white/5'
+            }`}>{l.label}</button>
+        ))}
+      </div>
+
+      <div className="flex-1"/>
+
+      {/* Search */}
+      <div className="flex items-center">
+        {searchOpen ? (
+          <form onSubmit={doSearch} className="flex items-center gap-2 animate-fadeIn">
+            <input ref={inputRef} value={searchQ} onChange={e=>setSearchQ(e.target.value)}
+              placeholder="Search anime…"
+              className="input-dark rounded-xl px-4 py-2 text-sm w-64 md:w-80"/>
+            <button type="submit" className="btn-primary px-4 py-2 rounded-xl text-sm">Go</button>
+            <button type="button" onClick={()=>setSearchOpen(false)} className="text-gray-400 hover:text-white">✕</button>
+          </form>
+        ) : (
+          <button onClick={()=>setSearchOpen(true)} className="p-2 text-gray-400 hover:text-white transition-colors text-lg">🔍</button>
+        )}
+      </div>
+
+      {/* User */}
+      {user.isLoggedIn ? (
+        <div className="relative group">
+          <button className="flex items-center gap-2 bg-neon-purple/10 hover:bg-neon-purple/20 border border-neon-purple/30 rounded-full px-3 py-1.5 text-sm transition-all">
+            <div className="w-7 h-7 rounded-full bg-gradient-to-br from-neon-purple to-neon-pink flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
+              {user.avatar||user.username?.[0]?.toUpperCase()||'U'}
+            </div>
+            <span className="hidden md:block text-white/90 text-sm max-w-[100px] truncate">{user.username}</span>
+          </button>
+          <div className="dropdown absolute right-0 top-full mt-2 opacity-0 group-hover:opacity-100 pointer-events-none group-hover:pointer-events-auto transition-opacity">
+            <div className="dropdown-item" onClick={()=>navigate('profile')}>👤 Profile</div>
+            <div className="dropdown-item" onClick={()=>navigate('stats')}>📊 Statistics</div>
+            <div className="dropdown-item text-red-400" onClick={logout}>🚪 Logout</div>
+          </div>
+        </div>
+      ) : (
+        <button onClick={()=>navigate('login')} className="btn-primary px-4 py-2 rounded-xl text-sm">Login</button>
+      )}
+
+      {/* Mobile menu */}
+      <button className="md:hidden p-2 text-gray-400" onClick={()=>setMenuOpen(m=>!m)}>☰</button>
+      {menuOpen && (
+        <div className="absolute top-16 left-0 right-0 glass border-t border-neon-purple/10 py-3 px-4 flex flex-col gap-1 md:hidden">
+          {navLinks.map(l=>(
+            <button key={l.id} onClick={()=>{navigate(l.id);setMenuOpen(false)}}
+              className={`px-4 py-2.5 rounded-xl text-sm font-medium text-left transition-all flex items-center gap-3 ${
+                page===l.id ? 'bg-neon-purple/20 text-neon-purple' : 'text-gray-400 hover:bg-white/5 hover:text-white'
+              }`}>
+              <span>{l.icon}</span>{l.label}
+            </button>
+          ))}
+        </div>
+      )}
+    </nav>
+  );
+}
+
+/* ============================================================
+   HOME PAGE
+============================================================ */
+function HomePage(){
+  const {user} = React.useContext(Ctx);
+  const [featured, setFeatured] = React.useState(null);
+  const [searchQ, setSearchQ] = React.useState('');
+
+  React.useEffect(()=>{
+    cachedJikan('/top/anime?filter=airing&limit=1').then(d=>{
+      if(d?.data?.[0]) setFeatured(d.data[0]);
+    });
+  },[]);
+
+  const doSearch = e => {
+    e.preventDefault();
+    if(searchQ.trim()) navigate(`search/${encodeURIComponent(searchQ.trim())}`);
+  };
+
+  return (
+    <div>
+      {/* Background orbs */}
+      <div className="orb w-96 h-96 bg-purple-600 top-20 -left-48 animate-float"/>
+      <div className="orb w-96 h-96 bg-pink-600 top-60 -right-48" style={{animationDelay:'3s'}}/>
+      <div className="orb w-64 h-64 bg-blue-600 bottom-40 left-1/4" style={{animationDelay:'1.5s'}}/>
+
+      {/* Hero */}
+      <section className="relative hero-bg pt-32 pb-20 px-4 md:px-8 overflow-hidden">
+        <div className="max-w-4xl mx-auto text-center relative z-10">
+          <div className="inline-flex items-center gap-2 bg-neon-purple/10 border border-neon-purple/30 rounded-full px-4 py-1.5 text-neon-purple text-sm font-medium mb-6 animate-fadeIn">
+            <span>✨</span> The Ultimate Anime Tracking Platform
+          </div>
+          <h1 className="text-5xl md:text-7xl font-black mb-6 leading-tight animate-slideUp">
+            <span className="gradient-text">Track. Discover.</span><br/>
+            <span className="text-white/90">Watch.</span>
+          </h1>
+          <p className="text-gray-400 text-lg md:text-xl mb-10 max-w-2xl mx-auto">
+            Your personal anime universe. Track every series, discover hidden gems, and connect with the anime community.
+          </p>
+          {/* Search Bar */}
+          <form onSubmit={doSearch} className="flex items-center gap-3 max-w-2xl mx-auto mb-10">
+            <div className="flex-1 relative">
+              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 text-lg">🔍</span>
+              <input
+                value={searchQ} onChange={e=>setSearchQ(e.target.value)}
+                placeholder="Search 50,000+ anime titles…"
+                className="input-dark rounded-2xl pl-12 pr-4 py-4 w-full text-base"
+              />
+            </div>
+            <button type="submit" className="btn-primary px-8 py-4 rounded-2xl font-bold text-base flex-shrink-0">
+              Search
+            </button>
+          </form>
+          {/* Stats */}
+          <div className="flex justify-center gap-8 text-sm text-gray-500">
+            {[['50,000+','Anime'],['1M+','Users'],['500M+','Episodes'],['10,000+','Studios']].map(([n,l])=>(
+              <div key={l} className="text-center">
+                <div className="text-neon-purple font-bold text-base">{n}</div>
+                <div>{l}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+        {/* Featured banner if available */}
+        {featured && (
+          <div className="max-w-6xl mx-auto mt-12 glass rounded-2xl overflow-hidden">
+            <div className="relative h-40 md:h-56 overflow-hidden">
+              <img src={featured.images?.jpg?.large_image_url} alt=""
+                className="w-full h-full object-cover object-top opacity-20 blur-sm scale-105"/>
+              <div className="absolute inset-0 flex items-center gap-6 px-6 md:px-10">
+                <img src={featured.images?.jpg?.large_image_url} alt={featured.title}
+                  className="h-28 md:h-44 w-auto rounded-xl shadow-2xl flex-shrink-0 border-2 border-neon-purple/40"/>
+                <div className="flex-1 min-w-0">
+                  <div className="badge badge-watching text-xs mb-2">🔴 Currently Airing</div>
+                  <h2 className="text-white font-black text-xl md:text-3xl truncate mb-2">{featured.title_english||featured.title}</h2>
+                  <div className="flex items-center gap-3 flex-wrap text-sm text-gray-400 mb-3">
+                    <ScoreBadge score={featured.score}/>
+                    <span>{featured.type}</span>
+                    <span>{featured.episodes||'?'} eps</span>
+                    {featured.genres?.slice(0,3).map(g=>(
+                      <span key={g.mal_id} className="bg-white/5 px-2 py-0.5 rounded-full text-xs">{g.name}</span>
+                    ))}
+                  </div>
+                  <p className="text-gray-400 text-sm line-clamp-2 hidden md:block">{featured.synopsis?.slice(0,200)}…</p>
+                  <button onClick={()=>navigate(`anime/${featured.mal_id}`)}
+                    className="btn-primary mt-3 px-5 py-2 rounded-xl text-sm">
+                    View Details →
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+      </section>
+
+      {/* Content */}
+      <div className="max-w-[1400px] mx-auto px-4 md:px-8 py-12 relative z-10">
+        {user.isLoggedIn && user.watchlist?.watching?.length>0 && (
+          <section className="mb-10">
+            <h2 className="section-title">
+              <span>▶️</span><span className="gradient-text">Continue Watching</span>
+            </h2>
+            <div className="scroll-row">
+              <div className="scroll-row-inner">
+                {user.watchlist.watching.map(a=>(
+                  <div key={a.mal_id} className="w-44 flex-shrink-0 glass rounded-xl overflow-hidden card-hover cursor-pointer"
+                    onClick={()=>navigate(`anime/${a.mal_id}`)}>
+                    <div className="relative aspect-[2/3] overflow-hidden">
+                      <img src={a.poster} alt={a.title} className="w-full h-full object-cover"/>
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent flex items-end p-3">
+                        <div className="w-full">
+                          <div className="progress-bar mb-1">
+                            <div className="progress-fill" style={{width:`${a.episodes?Math.min(100,(a.myEpisodes||0)/a.episodes*100):0}%`}}/>
+                          </div>
+                          <div className="text-xs text-gray-400">{a.myEpisodes||0}/{a.episodes||'?'} eps</div>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="p-2.5">
+                      <div className="text-white text-xs font-semibold line-clamp-2">{a.title_english||a.title}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </section>
+        )}
+
+        <AnimeRow title="Trending Now" icon="🔥" apiPath="/top/anime?filter=airing&limit=14" extraLink="browse"/>
+        <AnimeRow title="Top Rated" icon="⭐" apiPath="/top/anime?filter=bypopularity&limit=14" extraLink="browse"/>
+        <AnimeRow title="This Season" icon="🌸" apiPath="/seasons/now?limit=14" extraLink="browse"/>
+        <AnimeRow title="Top Movies" icon="🎬" apiPath="/top/anime?type=movie&limit=14" extraLink="browse"/>
+
+        {/* Genre quick browse */}
+        <section className="mb-10">
+          <h2 className="section-title">
+            <span>🎭</span><span className="gradient-text">Browse by Genre</span>
+            <button onClick={()=>navigate('browse')} className="ml-auto text-neon-purple text-sm hover:text-neon-pink font-normal">All genres →</button>
+          </h2>
+          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-3">
+            {GENRES.slice(0,16).map(g=>(
+              <button key={g.id} onClick={()=>navigate(`genre/${g.id}/${encodeURIComponent(g.name)}`)}
+                className={`genre-card bg-gradient-to-br ${g.color} p-3 rounded-xl text-center text-white font-semibold text-xs shadow-lg`}>
+                <div className="text-2xl mb-1">{g.icon}</div>
+                <div>{g.name}</div>
+              </button>
+            ))}
+          </div>
+        </section>
+
+        <AnimeRow title="Hidden Gems" icon="💎" apiPath="/top/anime?filter=favorite&limit=14"/>
+
+        {/* CTA Banner */}
+        {!user.isLoggedIn && (
+          <div className="relative overflow-hidden glass rounded-2xl p-8 md:p-12 text-center mb-10">
+            <div className="orb w-64 h-64 bg-purple-600 -top-20 -left-20"/>
+            <div className="orb w-64 h-64 bg-pink-600 -bottom-20 -right-20"/>
+            <div className="relative z-10">
+              <h2 className="text-3xl font-black gradient-text mb-3">Start Tracking Today</h2>
+              <p className="text-gray-400 mb-6">Join millions of anime fans. Track your watchlist, rate anime, and get personalized recommendations.</p>
+              <button onClick={()=>navigate('login')} className="btn-primary px-8 py-3 rounded-2xl font-bold text-base">
+                Create Free Account ✨
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/* ============================================================
+   SEARCH PAGE
+============================================================ */
+function SearchPage({query:initQ=''}){
+  const [query, setQuery] = React.useState(decodeURIComponent(initQ));
+  const [results, setResults] = React.useState([]);
+  const [loading, setLoading] = React.useState(false);
+  const [page, setPage] = React.useState(1);
+  const [hasMore, setHasMore] = React.useState(false);
+  const [filters, setFilters] = React.useState({type:'',status:'',genre:''});
+  const [totalResults, setTotalResults] = React.useState(0);
+  const debounceRef = React.useRef(null);
+
+  const doSearch = React.useCallback(async (q, pg, flt, append=false) => {
+    if (!q.trim()) { setResults([]); return; }
+    setLoading(true);
+    let path = `/anime?q=${encodeURIComponent(q)}&limit=20&page=${pg}&sfw=false`;
+    if (flt.type) path += `&type=${flt.type}`;
+    if (flt.status) path += `&status=${flt.status}`;
+    if (flt.genre) path += `&genres=${flt.genre}`;
+    const d = await jikan(path);
+    if (d?.data) {
+      setResults(r => append ? [...r,...d.data] : d.data);
+      setHasMore(d.pagination?.has_next_page||false);
+      setTotalResults(d.pagination?.items?.total||0);
+    }
+    setLoading(false);
+  },[]);
+
+  React.useEffect(()=>{
+    if (initQ) { setQuery(decodeURIComponent(initQ)); doSearch(decodeURIComponent(initQ),1,filters); }
+  },[initQ]);
+
+  const handleInputChange = v => {
+    setQuery(v);
+    clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(()=>{
+      setPage(1); doSearch(v,1,filters);
+    }, 500);
+  };
+
+  const loadMore = () => {
+    const np = page + 1;
+    setPage(np);
+    doSearch(query, np, filters, true);
+  };
+
+  return (
+    <div className="max-w-[1400px] mx-auto px-4 md:px-8 pt-24 pb-16">
+      {/* Search Header */}
+      <div className="mb-8">
+        <h1 className="text-3xl font-black gradient-text mb-2">Search Anime</h1>
+        <p className="text-gray-500">Explore 50,000+ anime titles</p>
+      </div>
+
+      {/* Search Bar */}
+      <div className="flex gap-3 mb-6 flex-wrap">
+        <div className="flex-1 relative min-w-64">
+          <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500">🔍</span>
+          <input value={query} onChange={e=>handleInputChange(e.target.value)}
+            placeholder="Search any anime…"
+            className="input-dark w-full rounded-2xl pl-12 pr-4 py-3.5 text-base"/>
+        </div>
+        <select value={filters.type} onChange={e=>{const f={...filters,type:e.target.value};setFilters(f);setPage(1);doSearch(query,1,f)}}
+          className="input-dark rounded-xl px-4 py-3 text-sm">
+          <option value="">All Types</option>
+          {['tv','movie','ova','special','ona','music'].map(t=>(
+            <option key={t} value={t}>{t.toUpperCase()}</option>
+          ))}
+        </select>
+        <select value={filters.status} onChange={e=>{const f={...filters,status:e.target.value};setFilters(f);setPage(1);doSearch(query,1,f)}}
+          className="input-dark rounded-xl px-4 py-3 text-sm">
+          <option value="">All Status</option>
+          {['airing','complete','upcoming'].map(s=>(
+            <option key={s} value={s}>{s.charAt(0).toUpperCase()+s.slice(1)}</option>
+          ))}
+        </select>
+        <select value={filters.genre} onChange={e=>{const f={...filters,genre:e.target.value};setFilters(f);setPage(1);doSearch(query,1,f)}}
+          className="input-dark rounded-xl px-4 py-3 text-sm">
+          <option value="">All Genres</option>
+          {GENRES.map(g=><option key={g.id} value={g.id}>{g.name}</option>)}
+        </select>
+      </div>
+
+      {totalResults>0 && (
+        <p className="text-gray-500 text-sm mb-6">Found <span className="text-neon-purple font-bold">{fmt(totalResults)}</span> results for <span className="text-white">"{query}"</span></p>
+      )}
+
+      {!query && !loading && (
+        <div>
+          <AnimeRow title="Popular Anime" icon="🔥" apiPath="/top/anime?filter=bypopularity&limit=14"/>
+          <AnimeRow title="New Releases" icon="🆕" apiPath="/seasons/now&limit=14"/>
+        </div>
+      )}
+
+      {loading && results.length===0 && <SkeletonGrid/>}
+
+      {results.length>0 && (
+        <>
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 mb-8">
+            {results.map(a=>(
+              <div key={a.mal_id} className="flex justify-center">
+                <AnimeCard anime={a}/>
+              </div>
+            ))}
+          </div>
+          {hasMore && (
+            <div className="text-center">
+              <button onClick={loadMore} disabled={loading}
+                className="btn-primary px-8 py-3 rounded-xl font-semibold disabled:opacity-50">
+                {loading ? 'Loading…' : 'Load More'}
+              </button>
+            </div>
+          )}
+        </>
+      )}
+
+      {!loading && query && results.length===0 && (
+        <div className="text-center py-24">
+          <div className="text-6xl mb-4">😔</div>
+          <h2 className="text-xl font-bold text-white mb-2">No results found</h2>
+          <p className="text-gray-500">Try a different search term or adjust your filters</p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ============================================================
+   ANIME DETAIL PAGE
+============================================================ */
+function AnimePage({id}){
+  const {user, getAnimeStatus, addToList, rateAnime} = React.useContext(Ctx);
+  const [anime, setAnime] = React.useState(null);
+  const [recs, setRecs] = React.useState([]);
+  const [chars, setChars] = React.useState([]);
+  const [loading, setLoading] = React.useState(true);
+  const [showDropdown, setShowDropdown] = React.useState(false);
+  const [activeTab, setActiveTab] = React.useState('overview');
+  const status = anime ? getAnimeStatus(anime.mal_id) : null;
+  const myRating = anime ? (user.ratings?.[anime.mal_id]||0) : 0;
+
+  React.useEffect(()=>{
+    setLoading(true);
+    setAnime(null); setRecs([]);
+    const loadAll = async () => {
+      const [d, r] = await Promise.all([
+        cachedJikan(`/anime/${id}/full`),
+        cachedJikan(`/anime/${id}/recommendations`)
+      ]);
+      if (d?.data) setAnime(d.data);
+      if (r?.data) setRecs(r.data.slice(0,12).map(x=>x.entry));
+      setLoading(false);
+    };
+    loadAll();
+  },[id]);
+
+  if (loading) return <div className="pt-24"><Spinner/></div>;
+  if (!anime) return (
+    <div className="pt-24 text-center py-20">
+      <div className="text-5xl mb-4">😵</div>
+      <p className="text-gray-400">Could not load anime details. Try again later.</p>
+    </div>
+  );
+
+  const poster = anime.images?.jpg?.large_image_url||anime.images?.jpg?.image_url||'';
+  const title = anime.title_english||anime.title;
+  const statusColor = {Airing:'text-emerald-400',Finished:'text-blue-400',Upcoming:'text-amber-400'};
+
+  return (
+    <div className="pt-16">
+      {/* Banner */}
+      <div className="relative h-72 md:h-96 overflow-hidden">
+        <img src={poster} alt="" className="w-full h-full object-cover object-top blur-md scale-110 opacity-25"/>
+        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-bg-primary/60 to-bg-primary"/>
+      </div>
+
+      <div className="max-w-6xl mx-auto px-4 md:px-8 -mt-48 relative z-10">
+        <div className="flex gap-6 md:gap-10 items-start">
+          {/* Poster */}
+          <div className="flex-shrink-0 w-32 md:w-48 rounded-2xl overflow-hidden shadow-2xl border-2 border-neon-purple/30 neon-glow">
+            <img src={poster} alt={title} className="w-full h-full object-cover"/>
+          </div>
+          {/* Info */}
+          <div className="flex-1 min-w-0 pt-24 md:pt-32">
+            <div className="flex flex-wrap gap-2 mb-3">
+              {anime.genres?.slice(0,5).map(g=>(
+                <span key={g.mal_id} className="badge bg-neon-purple/10 text-neon-purple border border-neon-purple/20 cursor-pointer hover:bg-neon-purple/20"
+                  onClick={()=>navigate(`genre/${g.mal_id}/${encodeURIComponent(g.name)}`)}>
+                  {g.name}
+                </span>
+              ))}
+            </div>
+            <h1 className="text-2xl md:text-4xl font-black text-white mb-2 leading-tight">{title}</h1>
+            {anime.title!==title && <p className="text-gray-500 text-sm mb-3">{anime.title}</p>}
+            <div className="flex items-center gap-4 flex-wrap text-sm text-gray-400 mb-5">
+              {anime.score && <div className="flex items-center gap-1"><span className="text-anime-gold text-lg">⭐</span><span className="text-white font-bold text-lg">{anime.score}</span><span className="text-gray-500">/ 10</span></div>}
+              <span className={statusColor[anime.status]||'text-gray-400'}>{anime.status}</span>
+              <span>{anime.year||anime.aired?.prop?.from?.year||'?'}</span>
+              <span>{anime.type}</span>
+              {anime.episodes && <span>{anime.episodes} episodes</span>}
+              {anime.studios?.[0] && <span>by {anime.studios[0].name}</span>}
+              {anime.rating && <span className="bg-white/5 px-2 py-0.5 rounded">{anime.rating}</span>}
+            </div>
+            {/* Actions */}
+            <div className="flex gap-3 flex-wrap items-center">
+              <div className="relative">
+                <button onClick={()=>setShowDropdown(d=>!d)}
+                  className={`btn-primary px-5 py-2.5 rounded-xl font-semibold flex items-center gap-2 ${status?'opacity-90':''}`}>
+                  {status ? `${STATUS_CONFIG[status].icon} ${STATUS_CONFIG[status].label}` : '+ Add to List'} ▾
+                </button>
+                {showDropdown && (
+                  <div className="dropdown absolute top-full left-0 mt-1">
+                    {Object.keys(STATUS_CONFIG).map(s=>(
+                      <div key={s} className={`dropdown-item ${status===s?'text-neon-purple font-semibold':''}`}
+                        onClick={()=>{addToList(anime,s);setShowDropdown(false)}}>
+                        <span>{STATUS_CONFIG[s].icon}</span>
+                        <span>{STATUS_CONFIG[s].label}</span>
+                        {status===s && <span className="ml-auto text-neon-purple">✓</span>}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+              {anime.trailer?.youtube_id && (
+                <a href={`https://youtube.com/watch?v=${anime.trailer.youtube_id}`} target="_blank" rel="noopener noreferrer"
+                  className="btn-secondary px-5 py-2.5 rounded-xl font-semibold flex items-center gap-2">
+                  ▶ Trailer
+                </a>
+              )}
+            </div>
+            {/* My Rating */}
+            <div className="mt-4">
+              <div className="text-gray-500 text-xs mb-1.5">MY RATING</div>
+              <StarRater value={myRating} onChange={v=>rateAnime(anime.mal_id,v)}/>
+              {myRating>0 && <span className="text-neon-purple text-xs ml-2">{myRating}/10</span>}
+            </div>
+          </div>
+        </div>
+
+        {/* Tabs */}
+        <div className="flex gap-1 mt-10 border-b border-white/5 mb-8">
+          {['overview','trailer','characters','related'].map(t=>(
+            <button key={t} onClick={()=>setActiveTab(t)}
+              className={`px-5 py-2.5 text-sm font-medium rounded-t-lg transition-all capitalize ${activeTab===t?'tab-active':'text-gray-500 hover:text-white'}`}>
+              {t.charAt(0).toUpperCase()+t.slice(1)}
+            </button>
+          ))}
+        </div>
+
+        {activeTab==='overview' && (
+          <div className="grid md:grid-cols-3 gap-8 mb-12">
+            <div className="md:col-span-2">
+              <h2 className="text-lg font-bold text-white mb-3">Synopsis</h2>
+              <p className="text-gray-400 leading-relaxed text-sm">{anime.synopsis||'No synopsis available.'}</p>
+
+              {anime.background && (
+                <div className="mt-6">
+                  <h3 className="text-base font-bold text-white mb-2">Background</h3>
+                  <p className="text-gray-400 text-sm leading-relaxed">{anime.background}</p>
+                </div>
+              )}
+            </div>
+            {/* Sidebar Info */}
+            <div className="glass rounded-2xl p-5 h-fit">
+              <h3 className="text-sm font-bold text-gray-300 mb-4 uppercase tracking-wider">Information</h3>
+              <div className="space-y-3 text-sm">
+                {[
+                  ['Type', anime.type],
+                  ['Episodes', anime.episodes||'Unknown'],
+                  ['Status', anime.status],
+                  ['Aired', anime.aired?.string],
+                  ['Duration', anime.duration],
+                  ['Rating', anime.rating],
+                  ['Score', anime.score ? `${anime.score} (${fmt(anime.scored_by)} users)` : 'N/A'],
+                  ['Ranked', anime.rank ? `#${anime.rank}` : 'N/A'],
+                  ['Popularity', anime.popularity ? `#${anime.popularity}` : 'N/A'],
+                  ['Members', fmt(anime.members)],
+                  ['Studio', anime.studios?.map(s=>s.name).join(', ')||'Unknown'],
+                  ['Source', anime.source],
+                ].filter(([,v])=>v).map(([l,v])=>(
+                  <div key={l} className="flex justify-between gap-2">
+                    <span className="text-gray-500 flex-shrink-0">{l}</span>
+                    <span className="text-white text-right">{v}</span>
+                  </div>
+                ))}
+              </div>
+              {anime.themes?.length>0 && (
+                <div className="mt-4">
+                  <div className="text-gray-500 text-xs mb-2">THEMES</div>
+                  <div className="flex flex-wrap gap-1">
+                    {anime.themes.map(t=><span key={t.mal_id} className="badge bg-white/5 text-gray-400 border border-white/5">{t.name}</span>)}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {activeTab==='trailer' && (
+          <div className="mb-12">
+            {anime.trailer?.youtube_id ? (
+              <div className="aspect-video rounded-2xl overflow-hidden max-w-3xl">
+                <iframe
+                  src={`https://www.youtube.com/embed/${anime.trailer.youtube_id}`}
+                  className="w-full h-full" allowFullScreen
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"/>
+              </div>
+            ) : (
+              <div className="text-center py-20 text-gray-500">
+                <div className="text-5xl mb-4">🎬</div>
+                <p>No trailer available for this anime.</p>
+              </div>
+            )}
+          </div>
+        )}
+
+        {activeTab==='characters' && (
+          <div className="mb-12">
+            <p className="text-gray-400">Character information is available on the detail panel.</p>
+          </div>
+        )}
+
+        {activeTab==='related' && (
+          <div className="mb-12">
+            {anime.relations?.length>0 ? (
+              anime.relations.map(rel=>(
+                <div key={rel.relation} className="mb-6">
+                  <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-3">{rel.relation}</h3>
+                  <div className="flex flex-wrap gap-3">
+                    {rel.entry.map(e=>(
+                      <button key={e.mal_id}
+                        onClick={()=>e.type==='anime'&&navigate(`anime/${e.mal_id}`)}
+                        className="glass px-4 py-2 rounded-xl text-sm hover:border-neon-purple/40 transition-colors text-white hover:text-neon-purple">
+                        {e.name} <span className="text-gray-500 text-xs">({e.type})</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ))
+            ) : <p className="text-gray-500">No related anime found.</p>}
+          </div>
+        )}
+
+        {/* Recommendations */}
+        {recs.length>0 && (
+          <section className="mb-16">
+            <h2 className="section-title">
+              <span>💡</span><span className="gradient-text">Recommended For You</span>
+            </h2>
+            <div className="scroll-row">
+              <div className="scroll-row-inner">
+                {recs.map(a=><AnimeCard key={a.mal_id} anime={a} compact/>)}
+              </div>
+            </div>
+          </section>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/* ============================================================
+   GENRE BROWSE PAGE
+============================================================ */
+function BrowsePage(){
+  return (
+    <div className="max-w-[1400px] mx-auto px-4 md:px-8 pt-24 pb-16">
+      <div className="mb-10">
+        <h1 className="text-4xl font-black gradient-text mb-2">Browse Anime</h1>
+        <p className="text-gray-500">Explore anime by genre, type, and more</p>
+      </div>
+
+      <h2 className="section-title mb-6"><span>🎭</span><span className="text-white">Browse by Genre</span></h2>
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 mb-14">
+        {GENRES.map(g=>(
+          <button key={g.id} onClick={()=>navigate(`genre/${g.id}/${encodeURIComponent(g.name)}`)}
+            className={`genre-card bg-gradient-to-br ${g.color} p-5 rounded-2xl text-white font-bold shadow-xl hover:shadow-neon-purple/20 text-center`}>
+            <div className="text-4xl mb-2">{g.icon}</div>
+            <div className="text-sm">{g.name}</div>
+          </button>
+        ))}
+      </div>
+
+      <div className="grid md:grid-cols-2 gap-8">
+        <AnimeRow title="Top TV Series" icon="📺" apiPath="/top/anime?type=tv&limit=14"/>
+        <AnimeRow title="Top Movies" icon="🎬" apiPath="/top/anime?type=movie&limit=14"/>
+      </div>
+
+      <AnimeRow title="Most Popular of All Time" icon="👑" apiPath="/top/anime?filter=bypopularity&limit=14"/>
+      <AnimeRow title="Upcoming Anime" icon="📅" apiPath="/top/anime?filter=upcoming&limit=14"/>
+    </div>
+  );
+}
+
+/* ============================================================
+   GENRE DETAIL PAGE
+============================================================ */
+function GenrePage({id, name}){
+  const [items, setItems] = React.useState([]);
+  const [loading, setLoading] = React.useState(true);
+  const [page, setPage] = React.useState(1);
+  const [hasMore, setHasMore] = React.useState(false);
+  const genre = GENRES.find(g=>g.id===parseInt(id));
+
+  const load = async (pg=1, append=false) => {
+    setLoading(true);
+    const d = await jikan(`/anime?genres=${id}&order_by=score&sort=desc&limit=24&page=${pg}`);
+    if (d?.data) {
+      setItems(r => append ? [...r,...d.data] : d.data);
+      setHasMore(d.pagination?.has_next_page||false);
+    }
+    setLoading(false);
+  };
+
+  React.useEffect(()=>{ setItems([]); setPage(1); load(1); },[id]);
+
+  return (
+    <div className="max-w-[1400px] mx-auto px-4 md:px-8 pt-24 pb-16">
+      <div className={`relative overflow-hidden rounded-3xl p-8 md:p-12 mb-10 bg-gradient-to-br ${genre?.color||'from-neon-purple to-neon-pink'}`}>
+        <div className="orb w-80 h-80 bg-black/40 -right-20 -top-20"/>
+        <div className="relative z-10">
+          <div className="text-5xl md:text-7xl mb-3">{genre?.icon||'🎭'}</div>
+          <h1 className="text-3xl md:text-5xl font-black text-white mb-2">{decodeURIComponent(name)}</h1>
+          <p className="text-white/70 text-lg">Top rated {decodeURIComponent(name).toLowerCase()} anime</p>
+        </div>
+      </div>
+
+      {loading && items.length===0 ? <SkeletonGrid n={24}/> : (
+        <>
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 mb-8">
+            {items.map(a=>(
+              <div key={a.mal_id} className="flex justify-center">
+                <AnimeCard anime={a}/>
+              </div>
+            ))}
+          </div>
+          {hasMore && (
+            <div className="text-center">
+              <button onClick={()=>{const np=page+1;setPage(np);load(np,true)}} disabled={loading}
+                className="btn-primary px-8 py-3 rounded-xl font-semibold">
+                Load More
+              </button>
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
+/* ============================================================
+   DASHBOARD PAGE
+============================================================ */
+function DashboardPage(){
+  const {user, getAllWatched, getTotalEpisodes, getAvgRating} = React.useContext(Ctx);
+  const all = getAllWatched();
+  const totalEps = getTotalEpisodes();
+  const avgR = getAvgRating();
+
+  if (!user.isLoggedIn) return (
+    <div className="pt-24 flex items-center justify-center min-h-[60vh]">
+      <div className="text-center">
+        <div className="text-6xl mb-4">🔒</div>
+        <h2 className="text-2xl font-bold text-white mb-3">Login to Access Dashboard</h2>
+        <p className="text-gray-500 mb-6">Track your anime journey and get personalized recommendations</p>
+        <button onClick={()=>navigate('login')} className="btn-primary px-8 py-3 rounded-xl font-semibold">Login Now</button>
+      </div>
+    </div>
+  );
+
+  const statsCards = [
+    {label:'Total Anime', value:all.length, icon:'📺', color:'from-purple-600 to-violet-400'},
+    {label:'Episodes Watched', value:fmt(totalEps), icon:'🎞️', color:'from-pink-600 to-rose-400'},
+    {label:'Hours Watched', value:fmt(hrs(totalEps)), icon:'⏱️', color:'from-blue-600 to-cyan-400'},
+    {label:'Avg Rating', value:avgR, icon:'⭐', color:'from-amber-500 to-yellow-300'},
+  ];
+
+  return (
+    <div className="max-w-[1400px] mx-auto px-4 md:px-8 pt-24 pb-16">
+      <div className="flex items-center justify-between mb-8">
+        <div>
+          <h1 className="text-3xl font-black text-white">Dashboard</h1>
+          <p className="text-gray-500">Welcome back, <span className="text-neon-purple">{user.username}</span> 👋</p>
+        </div>
+        <button onClick={()=>navigate('profile')} className="btn-secondary px-4 py-2 rounded-xl text-sm">View Profile</button>
+      </div>
+
+      {/* Stats */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-10">
+        {statsCards.map(s=>(
+          <div key={s.label} className="glass rounded-2xl p-5 hover:border-neon-purple/40 transition-colors">
+            <div className={`text-3xl mb-3 w-12 h-12 rounded-xl bg-gradient-to-br ${s.color} flex items-center justify-center`}>{s.icon}</div>
+            <div className="text-2xl font-black text-white">{s.value}</div>
+            <div className="text-gray-500 text-sm">{s.label}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* Continue Watching */}
+      {user.watchlist?.watching?.length>0 && (
+        <section className="mb-10">
+          <h2 className="section-title"><span>▶️</span><span className="gradient-text">Continue Watching</span></h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {user.watchlist.watching.slice(0,6).map(a=>(
+              <div key={a.mal_id} className="glass rounded-xl p-4 flex gap-4 items-center card-hover cursor-pointer"
+                onClick={()=>navigate(`anime/${a.mal_id}`)}>
+                <img src={a.poster} alt={a.title} className="w-14 h-20 object-cover rounded-lg flex-shrink-0"/>
+                <div className="flex-1 min-w-0">
+                  <div className="text-white font-semibold text-sm truncate mb-1">{a.title_english||a.title}</div>
+                  <div className="text-gray-500 text-xs mb-2">{a.myEpisodes||0}/{a.episodes||'?'} eps</div>
+                  <div className="progress-bar">
+                    <div className="progress-fill" style={{width:`${a.episodes?Math.min(100,(a.myEpisodes||0)/a.episodes*100):5}%`}}/>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* Plan to Watch */}
+      {user.watchlist?.planToWatch?.length>0 && (
+        <section className="mb-10">
+          <h2 className="section-title"><span>📋</span><span className="gradient-text">Plan to Watch</span></h2>
+          <div className="scroll-row">
+            <div className="scroll-row-inner">
+              {user.watchlist.planToWatch.map(a=>(
+                <div key={a.mal_id} className="w-36 flex-shrink-0 glass rounded-xl overflow-hidden card-hover cursor-pointer"
+                  onClick={()=>navigate(`anime/${a.mal_id}`)}>
+                  <div className="aspect-[2/3] overflow-hidden">
+                    <img src={a.poster} alt={a.title} className="w-full h-full object-cover"/>
+                  </div>
+                  <div className="p-2">
+                    <div className="text-white text-xs font-semibold line-clamp-2">{a.title_english||a.title}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
+      <AnimeRow title="Trending This Week" icon="🔥" apiPath="/top/anime?filter=airing&limit=14"/>
+      <AnimeRow title="Top Rated All Time" icon="👑" apiPath="/top/anime?filter=bypopularity&limit=14"/>
+    </div>
+  );
+}
+
+/* ============================================================
+   PROFILE PAGE
+============================================================ */
+function ProfilePage(){
+  const {user, getAnimeStatus, addToList, removeFromList, rateAnime, getAllWatched, getTotalEpisodes, getAvgRating} = React.useContext(Ctx);
+  const [activeTab, setActiveTab] = React.useState('all');
+  const all = getAllWatched();
+
+  if (!user.isLoggedIn) return (
+    <div className="pt-24 flex items-center justify-center min-h-[60vh]">
+      <div className="text-center">
+        <div className="text-6xl mb-4">👤</div>
+        <h2 className="text-2xl font-bold text-white mb-3">Sign in to view your profile</h2>
+        <button onClick={()=>navigate('login')} className="btn-primary px-8 py-3 rounded-xl font-semibold">Login</button>
+      </div>
+    </div>
+  );
+
+  const totalEps = getTotalEpisodes();
+  const filtered = activeTab==='all' ? all : all.filter(a=>a.status===activeTab);
+
+  const genreCounts = {};
+  all.forEach(a=>{ (a.genres||[]).forEach(g=>{ genreCounts[g.name]=(genreCounts[g.name]||0)+1; }); });
+  const topGenres = Object.entries(genreCounts).sort((a,b)=>b[1]-a[1]).slice(0,5);
+  const maxG = topGenres[0]?.[1]||1;
+
+  return (
+    <div className="max-w-5xl mx-auto px-4 md:px-8 pt-24 pb-16">
+      {/* Profile Header */}
+      <div className="glass rounded-3xl p-6 md:p-8 mb-8 relative overflow-hidden">
+        <div className="orb w-64 h-64 bg-purple-600/30 -top-10 -right-10"/>
+        <div className="flex flex-col md:flex-row gap-6 items-center md:items-start relative z-10">
+          <div className="w-24 h-24 rounded-full bg-gradient-to-br from-neon-purple to-neon-pink flex items-center justify-center text-white text-4xl font-black shadow-lg neon-glow flex-shrink-0">
+            {user.avatar||user.username?.[0]?.toUpperCase()||'U'}
+          </div>
+          <div className="flex-1 text-center md:text-left">
+            <h1 className="text-3xl font-black text-white mb-1">{user.username}</h1>
+            <p className="text-gray-400 text-sm mb-4">{user.email}</p>
+            <div className="flex flex-wrap gap-3 justify-center md:justify-start">
+              <span className="badge bg-neon-purple/10 text-neon-purple border border-neon-purple/20">
+                📅 Joined {new Date(user.joinDate||Date.now()).toLocaleDateString('en-US',{month:'long',year:'numeric'})}
+              </span>
+              {topGenres[0] && (
+                <span className="badge bg-neon-pink/10 text-neon-pink border border-neon-pink/20">
+                  ❤️ Loves {topGenres[0][0]}
+                </span>
+              )}
+            </div>
+          </div>
+          <button onClick={()=>navigate('stats')}
+            className="btn-secondary px-5 py-2.5 rounded-xl font-semibold flex-shrink-0">
+            📊 Statistics
+          </button>
+        </div>
+
+        {/* Stats Row */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-8 pt-8 border-t border-white/5">
+          {[
+            {l:'Anime Watched', v:all.filter(a=>a.status==='completed').length, icon:'✅'},
+            {l:'Episodes', v:fmt(totalEps), icon:'🎞️'},
+            {l:'Hours', v:fmt(hrs(totalEps)), icon:'⏱️'},
+            {l:'Avg Rating', v:getAvgRating(), icon:'⭐'},
+          ].map(s=>(
+            <div key={s.l} className="text-center">
+              <div className="text-2xl mb-1">{s.icon}</div>
+              <div className="text-xl font-black gradient-text">{s.v}</div>
+              <div className="text-gray-500 text-xs">{s.l}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Favorite Genres */}
+      {topGenres.length>0 && (
+        <div className="glass rounded-2xl p-6 mb-8">
+          <h2 className="font-bold text-white mb-5">🎭 Top Genres</h2>
+          <div className="space-y-3">
+            {topGenres.map(([name, count])=>(
+              <div key={name} className="flex items-center gap-4">
+                <span className="text-gray-400 text-sm w-28 flex-shrink-0">{name}</span>
+                <div className="flex-1 progress-bar">
+                  <div className="progress-fill" style={{width:`${count/maxG*100}%`}}/>
+                </div>
+                <span className="text-neon-purple text-sm font-bold w-8 text-right">{count}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* List Tabs */}
+      <div className="flex gap-1 overflow-x-auto mb-6 border-b border-white/5">
+        {[
+          {id:'all', label:'All', count:all.length},
+          {id:'watching', label:'Watching', count:(user.watchlist?.watching||[]).length},
+          {id:'completed', label:'Completed', count:(user.watchlist?.completed||[]).length},
+          {id:'planToWatch', label:'Plan to Watch', count:(user.watchlist?.planToWatch||[]).length},
+          {id:'dropped', label:'Dropped', count:(user.watchlist?.dropped||[]).length},
+        ].map(t=>(
+          <button key={t.id} onClick={()=>setActiveTab(t.id)}
+            className={`px-4 py-2.5 text-sm font-medium rounded-t-lg whitespace-nowrap transition-all flex-shrink-0 ${activeTab===t.id?'tab-active':'text-gray-500 hover:text-white'}`}>
+            {t.label}
+            {t.count>0 && <span className="ml-1.5 text-xs opacity-60">({t.count})</span>}
+          </button>
+        ))}
+      </div>
+
+      {filtered.length===0 ? (
+        <div className="text-center py-16">
+          <div className="text-5xl mb-4">📭</div>
+          <p className="text-gray-500">No anime in this list yet</p>
+          <button onClick={()=>navigate('browse')} className="btn-primary px-6 py-2.5 rounded-xl mt-4 text-sm">Browse Anime</button>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {filtered.map(a=>(
+            <div key={a.mal_id} className="glass rounded-xl p-4 flex gap-4 items-center group card-hover">
+              <img src={a.poster} alt={a.title}
+                className="w-12 h-16 object-cover rounded-lg flex-shrink-0 cursor-pointer hover:opacity-80 transition-opacity"
+                onClick={()=>navigate(`anime/${a.mal_id}`)}/>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 mb-1">
+                  <span className={`badge ${STATUS_CONFIG[a.status]?.color}`}>{STATUS_CONFIG[a.status]?.label}</span>
+                  {a.genres?.[0] && <span className="text-gray-500 text-xs">{a.genres[0].name}</span>}
+                </div>
+                <div className="text-white font-semibold text-sm truncate cursor-pointer hover:text-neon-purple transition-colors"
+                  onClick={()=>navigate(`anime/${a.mal_id}`)}>
+                  {a.title_english||a.title}
+                </div>
+                <div className="text-gray-500 text-xs mt-1">
+                  {a.year} · {a.type} · {a.episodes||'?'} eps
+                  {a.addedAt && ` · Added ${new Date(a.addedAt).toLocaleDateString()}`}
+                </div>
+              </div>
+              <div className="flex items-center gap-3 flex-shrink-0">
+                {user.ratings?.[a.mal_id] && (
+                  <div className="text-anime-gold font-bold text-sm">⭐ {user.ratings[a.mal_id]}</div>
+                )}
+                <button onClick={()=>removeFromList(a.mal_id)}
+                  className="opacity-0 group-hover:opacity-100 text-gray-600 hover:text-red-400 transition-all text-lg">✕</button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ============================================================
+   STATISTICS PAGE
+============================================================ */
+function StatsPage(){
+  const {user, getAllWatched, getTotalEpisodes, getAvgRating} = React.useContext(Ctx);
+
+  if (!user.isLoggedIn) return (
+    <div className="pt-24 flex items-center justify-center min-h-[60vh]">
+      <div className="text-center">
+        <div className="text-5xl mb-4">📊</div>
+        <h2 className="text-xl font-bold text-white mb-3">Login to see your statistics</h2>
+        <button onClick={()=>navigate('login')} className="btn-primary px-6 py-3 rounded-xl">Login</button>
+      </div>
+    </div>
+  );
+
+  const all = getAllWatched();
+  const totalEps = getTotalEpisodes();
+
+  // Genre distribution
+  const genreCount = {};
+  all.forEach(a=>{ (a.genres||[]).forEach(g=>{ genreCount[g.name]=(genreCount[g.name]||0)+1; }); });
+  const topGenres = Object.entries(genreCount).sort((a,b)=>b[1]-a[1]).slice(0,10);
+  const maxG = topGenres[0]?.[1]||1;
+
+  // Status distribution
+  const statusDist = Object.keys(STATUS_CONFIG).map(s=>({
+    label: STATUS_CONFIG[s].label,
+    count: (user.watchlist?.[s]||[]).length,
+    color: s==='completed'?'#3b82f6':s==='watching'?'#10b981':s==='planToWatch'?'#f59e0b':'#ef4444'
+  }));
+
+  // Rating distribution
+  const ratingDist = Array(10).fill(0).map((_,i)=>({
+    r: i+1,
+    count: Object.values(user.ratings||{}).filter(v=>v===i+1).length
+  }));
+  const maxR = Math.max(...ratingDist.map(r=>r.count), 1);
+
+  // SVG pie chart for genres
+  const total = topGenres.reduce((s,[,v])=>s+v,0)||1;
+  const genreColors = ['#7c3aed','#ec4899','#3b82f6','#10b981','#f59e0b','#ef4444','#06b6d4','#8b5cf6','#f97316','#84cc16'];
+
+  let pieAngle = 0;
+  const pieSlices = topGenres.slice(0,6).map(([name, count], i)=>{
+    const pct = count/total;
+    const start = pieAngle;
+    pieAngle += pct * 360;
+    const r=70, cx=80, cy=80;
+    const a1 = (start-90)*Math.PI/180, a2=(pieAngle-90)*Math.PI/180;
+    const x1=cx+r*Math.cos(a1), y1=cy+r*Math.sin(a1);
+    const x2=cx+r*Math.cos(a2), y2=cy+r*Math.sin(a2);
+    const large=pct>0.5?1:0;
+    return {name, count, pct, path:`M${cx},${cy} L${x1},${y1} A${r},${r} 0 ${large},1 ${x2},${y2} Z`, color:genreColors[i]};
+  });
+
+  return (
+    <div className="max-w-5xl mx-auto px-4 md:px-8 pt-24 pb-16">
+      <div className="mb-8">
+        <h1 className="text-4xl font-black gradient-text mb-2">My Statistics</h1>
+        <p className="text-gray-500">Your anime journey in numbers</p>
+      </div>
+
+      {/* Big Stats */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-10">
+        {[
+          {l:'Total Anime', v:all.length, icon:'📺', sub:'all time'},
+          {l:'Episodes', v:fmt(totalEps), icon:'🎞️', sub:'watched'},
+          {l:'Hours Watched', v:fmt(hrs(totalEps)), icon:'⏱️', sub:`≈${Math.round(hrs(totalEps)/24)} days`},
+          {l:'Avg Rating', v:getAvgRating(), icon:'⭐', sub:`${Object.keys(user.ratings||{}).length} rated`},
+        ].map(s=>(
+          <div key={s.l} className="glass rounded-2xl p-6 text-center card-hover">
+            <div className="text-4xl mb-3">{s.icon}</div>
+            <div className="text-3xl font-black gradient-text mb-1">{s.v}</div>
+            <div className="text-gray-400 text-sm font-medium">{s.l}</div>
+            <div className="text-gray-600 text-xs mt-1">{s.sub}</div>
+          </div>
+        ))}
+      </div>
+
+      <div className="grid md:grid-cols-2 gap-8 mb-8">
+        {/* Genre Pie Chart */}
+        <div className="glass rounded-2xl p-6">
+          <h2 className="font-bold text-white mb-5">🎭 Genre Distribution</h2>
+          {topGenres.length>0 ? (
+            <div className="flex items-center gap-6">
+              <svg viewBox="0 0 160 160" className="w-36 h-36 flex-shrink-0">
+                {pieSlices.map((s,i)=>(
+                  <path key={i} d={s.path} fill={s.color} className="hover:opacity-80 transition-opacity cursor-pointer">
+                    <title>{s.name}: {s.count}</title>
+                  </path>
+                ))}
+              </svg>
+              <div className="flex-1 space-y-2">
+                {pieSlices.map((s,i)=>(
+                  <div key={i} className="flex items-center gap-2 text-sm">
+                    <div className="w-3 h-3 rounded-full flex-shrink-0" style={{background:s.color}}/>
+                    <span className="text-gray-400 flex-1">{s.name}</span>
+                    <span className="text-white font-semibold">{s.count}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : <p className="text-gray-500 text-sm py-8 text-center">Add anime to your list to see genre stats</p>}
+        </div>
+
+        {/* Status Distribution */}
+        <div className="glass rounded-2xl p-6">
+          <h2 className="font-bold text-white mb-5">📋 List Status</h2>
+          <div className="space-y-4">
+            {statusDist.map(s=>(
+              <div key={s.label} className="flex items-center gap-3">
+                <div className="w-3 h-3 rounded-full flex-shrink-0" style={{background:s.color}}/>
+                <span className="text-gray-400 text-sm w-32">{s.label}</span>
+                <div className="flex-1 progress-bar">
+                  <div className="h-full rounded-full transition-all" style={{width:`${(s.count/Math.max(all.length,1))*100}%`,background:s.color}}/>
+                </div>
+                <span className="text-white font-bold text-sm w-6 text-right">{s.count}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Rating Distribution */}
+      <div className="glass rounded-2xl p-6 mb-8">
+        <h2 className="font-bold text-white mb-5">⭐ Rating Distribution</h2>
+        <div className="flex items-end justify-between gap-2 h-32">
+          {ratingDist.map(({r,count})=>(
+            <div key={r} className="flex-1 flex flex-col items-center gap-1">
+              <span className="text-neon-purple text-xs font-bold">{count||''}</span>
+              <div className="w-full rounded-t-lg transition-all"
+                style={{height:`${count?Math.max(8, count/maxR*96):4}px`, background:count?'linear-gradient(to top,#7c3aed,#ec4899)':'rgba(124,58,237,0.1)'}}/>
+              <span className="text-gray-600 text-xs">{r}</span>
+            </div>
+          ))}
+        </div>
+        <div className="text-center text-gray-600 text-xs mt-2">Rating (1–10)</div>
+      </div>
+
+      {/* Top Genres Bar */}
+      {topGenres.length>0 && (
+        <div className="glass rounded-2xl p-6">
+          <h2 className="font-bold text-white mb-5">🏆 Favorite Genres</h2>
+          <div className="space-y-3">
+            {topGenres.map(([name,count],i)=>(
+              <div key={name} className="flex items-center gap-4">
+                <span className="text-gray-500 text-xs w-4 text-right">{i+1}</span>
+                <span className="text-gray-300 text-sm w-28">{name}</span>
+                <div className="flex-1 progress-bar">
+                  <div className="progress-fill" style={{width:`${count/maxG*100}%`}}/>
+                </div>
+                <span className="text-neon-purple font-bold text-sm w-6 text-right">{count}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ============================================================
+   LOGIN PAGE
+============================================================ */
+function LoginPage(){
+  const {user, login} = React.useContext(Ctx);
+  const [mode, setMode] = React.useState('login');
+  const [email, setEmail] = React.useState('');
+  const [password, setPassword] = React.useState('');
+  const [username, setUsername] = React.useState('');
+  const [loading, setLoading] = React.useState(false);
+  const [error, setError] = React.useState('');
+
+  if (user.isLoggedIn) { navigate('dashboard'); return null; }
+
+  const handleSubmit = e => {
+    e.preventDefault();
+    setError('');
+    if (!email || !password) { setError('Please fill all fields'); return; }
+    if (mode==='register' && !username) { setError('Username is required'); return; }
+    setLoading(true);
+    setTimeout(()=>{
+      login({ username: mode==='register' ? username : email.split('@')[0], email });
+      setLoading(false);
+      navigate('dashboard');
+    }, 1000);
+  };
+
+  const demoLogin = () => {
+    setLoading(true);
+    setTimeout(()=>{
+      login({username:'AniVaultFan', email:'demo@anivault.com'});
+      setLoading(false);
+      navigate('dashboard');
+    }, 800);
+  };
+
+  const googleLogin = () => {
+    setLoading(true);
+    setTimeout(()=>{
+      login({username:'AnimeKing', email:'user@gmail.com'});
+      setLoading(false);
+      navigate('dashboard');
+    }, 1000);
+  };
+
+  return (
+    <div className="min-h-screen flex items-center justify-center px-4 pt-16 hero-bg">
+      <div className="orb w-80 h-80 bg-purple-600 top-20 -left-40"/>
+      <div className="orb w-80 h-80 bg-pink-600 bottom-20 -right-40"/>
+      <div className="w-full max-w-md relative z-10 animate-slideUp">
+        <div className="text-center mb-8">
+          <button onClick={()=>navigate('home')} className="text-4xl font-black gradient-text text-3xl">🎌 AniVault</button>
+          <p className="text-gray-400 mt-2">Your anime journey starts here</p>
+        </div>
+        <div className="glass rounded-3xl p-8">
+          {/* Tabs */}
+          <div className="flex gap-1 mb-8 bg-white/5 rounded-xl p-1">
+            {['login','register'].map(m=>(
+              <button key={m} onClick={()=>{setMode(m);setError('')}}
+                className={`flex-1 py-2.5 rounded-lg text-sm font-semibold transition-all capitalize ${mode===m?'bg-neon-purple text-white':'text-gray-400 hover:text-white'}`}>
+                {m==='login'?'Login':'Register'}
+              </button>
+            ))}
+          </div>
+
+          {error && (
+            <div className="bg-red-900/30 border border-red-500/30 rounded-xl px-4 py-3 mb-5 text-red-400 text-sm">{error}</div>
+          )}
+
+          <form onSubmit={handleSubmit} className="space-y-4">
+            {mode==='register' && (
+              <div>
+                <label className="text-gray-400 text-sm block mb-1.5">Username</label>
+                <input value={username} onChange={e=>setUsername(e.target.value)}
+                  placeholder="Choose a username"
+                  className="input-dark w-full rounded-xl px-4 py-3"/>
+              </div>
+            )}
+            <div>
+              <label className="text-gray-400 text-sm block mb-1.5">Email</label>
+              <input type="email" value={email} onChange={e=>setEmail(e.target.value)}
+                placeholder="your@email.com"
+                className="input-dark w-full rounded-xl px-4 py-3"/>
+            </div>
+            <div>
+              <label className="text-gray-400 text-sm block mb-1.5">Password</label>
+              <input type="password" value={password} onChange={e=>setPassword(e.target.value)}
+                placeholder="••••••••"
+                className="input-dark w-full rounded-xl px-4 py-3"/>
+            </div>
+            <button type="submit" disabled={loading}
+              className="btn-primary w-full py-3.5 rounded-xl font-bold text-base disabled:opacity-60 mt-2">
+              {loading ? '⏳ Please wait…' : mode==='login'?'Login to AniVault':'Create Account'}
+            </button>
+          </form>
+
+          <div className="flex items-center gap-3 my-5">
+            <div className="flex-1 h-px bg-white/10"/>
+            <span className="text-gray-600 text-xs">OR</span>
+            <div className="flex-1 h-px bg-white/10"/>
+          </div>
+
+          <div className="space-y-3">
+            <button onClick={googleLogin} disabled={loading}
+              className="btn-secondary w-full py-3 rounded-xl font-semibold flex items-center justify-center gap-3">
+              <svg className="w-5 h-5" viewBox="0 0 24 24">
+                <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+                <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+                <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
+                <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+              </svg>
+              Continue with Google
+            </button>
+
+            <button onClick={demoLogin} disabled={loading}
+              className="w-full py-3 rounded-xl font-semibold bg-neon-cyan/10 border border-neon-cyan/30 text-neon-cyan hover:bg-neon-cyan/20 transition-all flex items-center justify-center gap-2">
+              ⚡ Try Demo Account
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ============================================================
+   NOT FOUND
+============================================================ */
+function NotFoundPage(){
+  return (
+    <div className="pt-24 flex items-center justify-center min-h-[70vh] text-center px-4">
+      <div>
+        <div className="text-8xl mb-6">🎌</div>
+        <h1 className="text-5xl font-black gradient-text mb-4">404</h1>
+        <h2 className="text-2xl font-bold text-white mb-3">Page Not Found</h2>
+        <p className="text-gray-500 mb-8 max-w-md">Looks like this page got isekai'd to another dimension.</p>
+        <button onClick={()=>navigate('home')} className="btn-primary px-8 py-3 rounded-xl font-bold">Back to Home</button>
+      </div>
+    </div>
+  );
+}
+
+/* ============================================================
+   MAIN APP ROUTER
+============================================================ */
+function App(){
+  const [page, setPage] = React.useState(hashPage());
+
+  React.useEffect(()=>{
+    const handler = () => setPage(hashPage());
+    window.addEventListener('hashchange', handler);
+    return ()=>window.removeEventListener('hashchange', handler);
+  },[]);
+
+  const showNav = page !== 'login';
+
+  const renderPage = () => {
+    if (page==='home') return <HomePage/>;
+    if (page==='search') return <SearchPage/>;
+    if (page.startsWith('search/')) return <SearchPage query={page.slice(7)}/>;
+    if (page==='browse') return <BrowsePage/>;
+    if (page.startsWith('genre/')) {
+      const parts = page.split('/');
+      return <GenrePage id={parts[1]} name={parts[2]||'Genre'}/>;
+    }
+    if (page.startsWith('anime/')) return <AnimePage id={page.split('/')[1]}/>;
+    if (page==='dashboard') return <DashboardPage/>;
+    if (page==='profile') return <ProfilePage/>;
+    if (page==='stats') return <StatsPage/>;
+    if (page==='login') return <LoginPage/>;
+    return <NotFoundPage/>;
+  };
+
+  return (
+    <AppProvider>
+      {showNav && <Navbar page={page}/>}
+      <main style={{minHeight:'100vh'}}>
+        {renderPage()}
+      </main>
+      {/* Footer */}
+      {showNav && (
+        <footer className="border-t border-white/5 mt-16 py-10 px-8 text-center text-gray-600 text-sm">
+          <div className="text-2xl mb-2">🎌</div>
+          <div className="font-bold text-gray-400 mb-1">AniVault</div>
+          <p>Anime data powered by <a href="https://jikan.moe" target="_blank" className="text-neon-purple hover:text-neon-pink transition-colors">Jikan API</a> (MyAnimeList)</p>
+          <p className="mt-1">Built with React + Tailwind CSS + ❤️</p>
+        </footer>
+      )}
+    </AppProvider>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+</body>
+</html>
